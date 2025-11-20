@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory System</title>
+    <style>
+        /* All CSS remains the same */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+        :root {
+            --primary-color: #272a2d;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --transition-duration: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--secondary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color var(--transition-duration) ease;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            transition: transform var(--transition-duration) ease, opacity var(--transition-duration) ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        header {
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            bottom: 0%;
+        }
+
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color var(--transition-duration) ease, transform var(--transition-duration) ease;
+            margin-bottom: 1rem;
+        }
+
+        .button:hover {
+            background-color: #24282d;
+            transform: translateY(-2px);
+        }
+
+        .back-arrow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 1.5rem;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: transform var(--transition-duration) ease;
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+
+        .back-arrow:hover {
+            transform: translateX(-5px);
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        label {
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        #welcome-message {
+            opacity: 1;
+            transition: opacity var(--transition-duration) ease;
+        }
+
+        .arrow {
+            display: inline-block;
+            margin-left: 0.5rem;
+            transition: transform var(--transition-duration) ease;
+        }
+
+        .button:hover .arrow {
+            transform: translateX(5px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            animation: fadeIn var(--transition-duration) ease;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Landing Section -->
+        <section id="landing-section" class="section active">
+            <header>
+                <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Company Logo" class="logo">
+            </header>
+            <main>
+                <a href="#" onclick="showSection('new-user-section')" class="button">Get Started</a>
+                <p>Already have an account? <a href="#" onclick="showSection('signin-section')">Sign In</a></p>
+            </main>
+        </section>
+
+        <!-- New User Section -->
+        <section id="new-user-section" class="section">
+            <header>
+                <a href="#" onclick="showSection('landing-section')" class="back-arrow">←</a>
+                <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Company Logo" class="logo">
+            </header>
+            <main>
+                <form class="form" onsubmit="handleNewUser(event)">
+                    <h2>Create Account</h2>
+                    <div class="form-group">
+                        <label for="name">Full Name:</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-email">Email:</label>
+                        <input type="email" id="new-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Password:</label>
+                        <input type="password" id="new-password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password:</label>
+                        <input type="password" id="confirm-password" name="confirm-password" required>
+                    </div>
+                    <button type="submit" class="button">Create Account</button>
+                </form>
+            </main>
+        </section>
+
+        <!-- Sign In Section -->
+        <section id="signin-section" class="section">
+            <header>
+                <a href="#" onclick="showSection('landing-section')" class="back-arrow">←</a>
+                <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Company Logo" class="logo">
+            </header>
+            <main>
+                <form class="form" onsubmit="handleSignIn(event)">
+                    <h2>Sign In</h2>
+                    <div class="form-group">
+                        <label for="signin-email">Email:</label>
+                        <input type="email" id="signin-email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signin-password">Password:</label>
+                        <input type="password" id="signin-password" name="password" required>
+                    </div>
+                    <button type="submit" class="button">Sign In</button>
+                </form>
+            </main>
+        </section>
+
+        <!-- Welcome Section -->
+        <section id="welcome-section" class="section">
+            <header>
+                <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Company Logo" class="logo">
+            </header>
+            <main>
+                <div id="welcome-message">
+                    <h2>Welcome, <span id="user-name">User</span>!</h2>
+                    <a href="/dashboard" class="button">
+    Proceed to Dashboard
+    <span class="arrow">→</span>
+                   </a>
+                </div>
+            </main>
+        </section>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            // Show the selected section
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        async function handleNewUser(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                alert("Passwords don't match!");
+                return;
+            }
+
+            const data = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('new-email').value,
+                password: password
+            };
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('user-name').textContent = result.name;
+                    showSection('welcome-section');
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('An error occurred during registration');
+            }
+        }
+
+        async function handleSignIn(event) {
+            event.preventDefault();
+            
+            const data = {
+                email: document.getElementById('signin-email').value,
+                password: document.getElementById('signin-password').value
+            };
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('user-name').textContent = result.name;
+                    showSection('welcome-section');
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('An error occurred during sign in');
+            }
+        }
+    </script>
+</body>
+</html> 

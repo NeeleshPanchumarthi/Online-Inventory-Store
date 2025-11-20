@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B&W Inventory Store Dashboard</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #fff;
+            background-color: #fff;
+        }
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar styles */
+        .sidebar {
+            width: 250px;
+            background-color: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar.collapsed {
+            width: 70px;
+            padding: 20px 10px;
+        }
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.3s;
+            color: #fff;
+        }
+        .sidebar.collapsed .sidebar-header h1 {
+            opacity: 0;
+            width: 0;
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.3s;
+        }
+        .sidebar.collapsed .toggle-btn {
+            transform: rotate(180deg);
+        }
+        .sidebar-nav {
+            flex-grow: 1;
+            margin-bottom: 20px;
+        }
+        .sidebar-nav ul {
+            list-style-type: none;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar-nav a:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+        .sidebar-nav a:hover:before {
+            width: 100%;
+        }
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background-color: #333;
+            transform: translateX(5px);
+        }
+        .sidebar-nav .icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+            min-width: 25px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-nav a:hover .icon {
+            transform: scale(1.1);
+        }
+        .sidebar.collapsed .sidebar-nav span:not(.icon) {
+            display: none;
+        }
+
+        .logout-btn {
+            margin-top: auto;
+            padding: 12px;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: calc(100% - 40px);
+            max-width: 210px;
+        }
+
+        .logout-btn .icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .logout-btn .text {
+            display: block;
+        }
+
+        .sidebar.collapsed .logout-btn {
+            width: 45px;
+            padding: 12px 0;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .logout-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .sidebar.collapsed .logout-btn:hover {
+            transform: translateX(-50%) translateY(-2px);
+        }
+
+        /* Main content styles */
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            margin-left: 250px;
+        }
+        .content.expanded {
+            margin-left: 70px;
+        }
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .page.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        /* Widget styles */
+        .widget-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .widget {
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .widget h3 {
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .widget-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            color: #333;
+        }
+        th {
+            background-color: #222;
+            color: #fff;
+        }
+        /* Form styles */
+        .settings-form {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .form-group:hover {
+            transform: translateX(5px);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #333;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        input:hover, select:hover {
+            border-color: #555;
+            background-color: #444;
+        }
+        button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #444;
+            transform: translateY(-2px);
+        }
+        /* Profile styles */
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            object-fit: cover;
+            border: 3px solid #333;
+            transition: all 0.3s ease;
+        }
+        .profile-picture:hover {
+            border-color: #555;
+            transform: scale(1.05);
+        }
+        .profile-picture-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #upload-photo {
+            display: none;
+        }
+        .upload-btn {
+            display: inline-block;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+                height: auto;
+            }
+            .sidebar.collapsed {
+                width: 100%;
+                padding: 20px;
+            }
+            .content {
+                margin-left: 0;
+            }
+            .content.expanded {
+                margin-left: 0;
+            }
+        }
+        /* New styles for extra features */
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+        .search-bar input:hover {
+            border-color: #555;
+            width: 250px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .status.shipped {
+            background-color: #4CAF50;
+        }
+        .status.processing {
+            background-color: #FFA500;
+        }
+        .status.delivered {
+            background-color: #2196F3;
+        }
+        .inventory-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        .pagination button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .recent-activity {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .recent-activity h3 {
+            color: #fff;
+        }
+        
+        .recent-activity ul {
+            list-style: none;
+            color: #fff;
+        }
+        
+        .recent-activity li {
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        /* New Professional Profile Styles */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+
+        .profile-sidebar {
+            background-color: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            height: fit-content;
+            color: #fff;
+            position: relative;
+        }
+
+        .profile-main {
+            background-color: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            flex: 1;
+            background-color: #292727;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(41, 39, 39, 0.2);
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            background-color: #333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+            line-height: 1.2;
+            position: relative;
+            z-index: 1;
+            margin-top: 4px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .profile-section {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .profile-section h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-btn {
+            font-size: 14px;
+            padding: 5px 10px;
+            background-color: #444;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background-color: #555;
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #444;
+            border-radius: 15px;
+            margin: 5px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .badge:hover {
+            background-color: #555;
+            transform: translateY(-2px);
+        }
+
+        .form-fields {
+            display: none;
+        }
+
+        .form-fields.active {
+            display: block;
+        }
+
+        .view-fields {
+            margin-bottom: 15px;
+        }
+
+        .view-fields p {
+            margin: 10px 0;
+            color: #fff;
+        }
+
+        .view-fields strong {
+            display: inline-block;
+            width: 150px;
+            color: #888;
+        }
+
+        /* Experience Box Styles */
+        .experience-box {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .experience-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .experience-box h3 {
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .experience-duration {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            background-color: #292727;
+            border-radius: 8px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .experience-duration:hover {
+            background-color: #333;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .profile-stats {
+                flex-direction: column;
+            }
+            
+            .stat-card {
+                min-height: 80px;
+            }
+        }
+
+        #addItemModal input:focus {
+            outline: none;
+            background: #404040;
+        }
+        #addItemModal button:hover {
+            background: #505050 !important;
+        }
+        #addItemModal input:hover {
+            background: #404040;
+        }
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        @keyframes modalSlideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+
+        .inventory-table input.edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background-color: #333;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .inventory-table input.edit-input:focus {
+            outline: none;
+            border-color: #666;
+            background-color: #444;
+        }
+
+        .action-buttons button {
+            margin: 0 2px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-buttons .edit-btn,
+        .action-buttons .save-btn {
+            background-color: #4CAF50;
+        }
+
+        .action-buttons .cancel-btn {
+            background-color: #ff9800;
+        }
+
+        .action-buttons .delete-btn {
+            background-color: #f44336;
+        }
+
+        .action-buttons button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .logout-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logout-btn:after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+
+        .logout-btn:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(30, 30);
+                opacity: 0;
+            }
+        }
+
+        @keyframes spin {
+            from {transform: rotate(0deg);}
+            to {transform: rotate(360deg);}
+        }
+
+        .logout-btn .icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .logout-btn:disabled .icon {
+            animation: spin 1s linear infinite;
+        }
+
+        .logout-btn:hover:not(:disabled) {
+            background-color: #b32c38;
+        }
+
+        .logout-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        @media (max-width: 768px) {
+            .logout-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: calc(100% - 40px);
+                max-width: 300px;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+
+            .sidebar.collapsed .logout-btn {
+                width: calc(100% - 40px);
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+        .form-fields {
+            display: none;
+        }
+
+        .form-fields.active {
+            display: block;
+        }
+
+        .form-fields input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+        }
+
+        .form-fields input:focus {
+            outline: none;
+            border-color: #555;
+        }
+
+        .form-fields input[readonly] {
+            background-color: #2a2a2a;
+            cursor: not-allowed;
+        }
+
+        .edit-btn {
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .edit-btn:hover {
+            background-color: #555;
+        }
+
+        .profile-section {
+            margin-bottom: 30px;
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .profile-section h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Inventory Store</h1>
+                <button class="toggle-btn">☰</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#dashboard" class="active"><span class="icon">📊</span><span>Dashboard</span></a></li>
+                    <li><a href="#inventory"><span class="icon">📦</span><span>Inventory</span></a></li>
+                    <li><a href="#orders"><span class="icon">🛒</span><span>Orders</span></a></li>
+                    <li><a href="#reports"><span class="icon">📈</span><span>Reports</span></a></li>
+                    <li><a href="#settings"><span class="icon">⚙️</span><span>Settings</span></a></li>
+                    <li><a href="#profile"><span class="icon">👤</span><span>Profile</span></a></li>
+                </ul>
+            </nav>
+            <button class="logout-btn" onclick="handleLogout()">
+                <span class="icon">⎋</span>
+                <span class="text">Logout</span>
+            </button>
+        </aside>
+        <main class="content">
+            <section id="dashboard" class="page active">
+                <h2>Dashboard Overview</h2>
+                <div class="widget-container">
+                    <div class="widget">
+                        <h3>Total Sales</h3>
+                        <p class="widget-value">$24,500</p>
+                    </div>
+                    <div class="widget">
+                        <h3>Total Orders</h3>
+                        <p class="widget-value">150</p>
+                    </div>
+                    <div class="widget">
+                        <h3>Low Stock Items</h3>
+                        <p class="widget-value">5</p>
+                    </div>
+                    <div class="widget">
+                        <h3>Customers</h3>
+                        <p class="widget-value">25</p>
+                    </div>
+                </div>
+                
+            </section>
+            <section id="inventory" class="page">
+                <h2>Inventory Management</h2>
+                <div class="inventory-actions">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search inventory...">
+                    </div>
+                    <button>Add New Item</button>
+                </div>
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>SKU</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Product A</td>
+                            <td>SKU001</td>
+                            <td>50</td>
+                            <td>$19.99</td>
+                            <td><button>Edit</button> <button>Delete</button></td>
+                        </tr>
+                        <tr>
+                            <td>Product B</td>
+                            <td>SKU002</td>
+                            <td>30</td>
+                            <td>$24.99</td>
+                            <td><button>Edit</button> <button>Delete</button></td>
+                        </tr>
+                        <tr>
+                            <td>Product C</td>
+                            <td>SKU003</td>
+                            <td>10</td>
+                            <td>$39.99</td>
+                            <td><button>Edit</button> <button>Delete</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button>Previous</button>
+                    <button>1</button>
+                    <button>2</button>
+                    <button>3</button>
+                    <button>Next</button>
+                </div>
+            </section>
+            <section id="orders" class="page">
+                <h2>Order Tracking</h2>
+                <div class="search-bar">
+                    <input type="text" placeholder="Search orders...">
+                    <button>Search</button>
+                </div>
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#1001</td>
+                            <td>Alice Johnson</td>
+                            <td>2023-05-15</td>
+                            <td>$129.99</td>
+                            <td><span class="status shipped">Shipped</span></td>
+                        </tr>
+                        <tr>
+                            <td>#1002</td>
+                            <td>Bob Smith</td>
+                            <td>2023-05-16</td>
+                            <td>$79.99</td>
+                            <td><span class="status processing">Processing</span></td>
+                        </tr>
+                        <tr>
+                            <td>#1003</td>
+                            <td>Carol Davis</td>
+                            <td>2023-05-17</td>
+                            <td>$199.99</td>
+                            <td><span class="status delivered">Delivered</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button>Previous</button>
+                    <button>1</button>
+                    <button>2</button>
+                    <button>3</button>
+                    <button>Next</button>
+                </div>
+            </section>
+            <section id="reports" class="page">
+                <h2>Sales Reports</h2>
+                <div class="widget-container">
+                    <div class="widget">
+                        <h3>Top Selling Item</h3>
+                        <p class="widget-value">Product A</p>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Sales</th>
+                            <th>Growth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>January</td>
+                            <td>$50,000</td>
+                            <td>+5%</td>
+                        </tr>
+                        <tr>
+                            <td>February</td>
+                            <td>$60,000</td>
+                            <td>+20%</td>
+                        </tr>
+                        <tr>
+                            <td>March</td>
+                            <td>$75,000</td>
+                            <td>+25%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            <section id="settings" class="page">
+                <h2>Inventory Settings</h2>
+                <form class="settings-form">
+                    <div class="form-group">
+                        <label for="low-stock-threshold">Low Stock Threshold</label>
+                        <input type="number" id="low-stock-threshold" min="1" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="auto-reorder">Enable Auto Reorder</label>
+                        <input type="checkbox" id="auto-reorder" checked>
+                    </div>
+                    <div class="form-group">
+                        <label for="currency">Currency</label>
+                        <select id="currency">
+                            <option value="usd">USD</option>
+                            <option value="eur">EUR</option>
+                            <option value="gbp">GBP</option>
+                        </select>
+                    </div>
+                    <button type="submit">Save Changes</button>
+                </form>
+            </section>
+            <section id="profile" class="page">
+                <h2>Professional Profile</h2>
+                <div class="profile-grid">
+                    <div class="profile-sidebar">
+                        <div class="profile-picture-container">
+                            <img src="https://via.placeholder.com/150" alt="Profile Picture" class="profile-picture" id="profile-image">
+                            <input type="file" id="upload-photo" accept="image/*">
+                            <label for="upload-photo" class="upload-btn">
+                                <button type="button">Update Profile Photo</button>
+                            </label>
+                        </div>
+                        <h3>John Doe</h3>
+                        <p>Senior Inventory Manager</p>
+                        <div class="profile-stats">
+                            <div class="stat-card">
+                                <div class="stat-value">127</div>
+                                <div class="stat-label">Orders Managed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">98%</div>
+                                <div class="stat-label">Accuracy Rate</div>
+                            </div>
+                        </div>
+                        <div class="experience-box">
+                            <h3>Years of Experience</h3>
+                            <div class="experience-duration">3 Years</div>
+                        </div>
+                    </div>
+                    <div class="profile-main">
+                        <div class="profile-section">
+                            <h3>
+                                Personal Information
+                                <button class="edit-btn" onclick="toggleEdit('personal')">Edit</button>
+                            </h3>
+                            <div class="view-fields" id="personal-view">
+                                <p><strong>Full Name:</strong> John Doe</p>
+                                <p><strong>Email:</strong> john.doe@company.com</p>
+                                <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+                                <p><strong>Location:</strong> New York, USA</p>
+                            </div>
+                            <form class="form-fields" id="personal-edit">
+                                <div class="form-group">
+                                    <label for="fullName">Full Name</label>
+                                    <input type="text" name="fullName" id="fullName" value="John Doe">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" name="email" id="email" value="john.doe@company.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" name="phone" id="phone" value="+1 (555) 123-4567">
+                                </div>
+                                <div class="form-group">
+                                    <label for="location">Location</label>
+                                    <input type="text" name="location" id="location" value="New York, USA">
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="profile-section">
+                            <h3>
+                                Professional Details
+                                <button class="edit-btn" onclick="toggleEdit('professional')">Edit</button>
+                            </h3>
+                            <div class="view-fields" id="professional-view">
+                                <p><strong>Department:</strong> Inventory Management</p>
+                                <p><strong>Role:</strong> Senior Inventory Manager</p>
+                                <p><strong>Employee ID:</strong> EMP001</p>
+                                <p><strong>Join Date:</strong> January 15, 2020</p>
+                            </div>
+                            <form class="form-fields" id="professional-edit">
+                                <div class="form-group">
+                                    <label for="department">Department</label>
+                                    <input type="text" name="department" id="department" value="Inventory Management">
+                                </div>
+                                <div class="form-group">
+                                    <label for="role">Role</label>
+                                    <input type="text" name="role" id="role" value="Senior Inventory Manager" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="employeeId">Employee ID</label>
+                                    <input type="text" name="employeeId" id="employeeId" value="EMP001" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="joinDate">Join Date</label>
+                                    <input type="text" name="joinDate" id="joinDate" value="January 15, 2020" readonly>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="profile-section">
+                            <h3>
+                                Skills & Certifications
+                                <button class="edit-btn" onclick="toggleEdit('skills')">Edit</button>
+                            </h3>
+                            <div class="view-fields" id="skills-view">
+                                <div class="badges">
+                                    <span class="badge">Inventory Management</span>
+                                    <span class="badge">Supply Chain</span>
+                                    <span class="badge">Team Leadership</span>
+                                    <span class="badge">Data Analysis</span>
+                                    <span class="badge">ERP Systems</span>
+                                    <span class="badge">Quality Control</span>
+                                </div>
+                            </div>
+                            <form class="form-fields" id="skills-edit">
+                                <div class="form-group">
+                                    <label for="skills">Skills (comma-separated)</label>
+                                    <input type="text" name="skills" id="skills" 
+                                           value="Inventory Management, Supply Chain, Team Leadership, Data Analysis, ERP Systems, Quality Control">
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const links = document.querySelectorAll('.sidebar-nav a');
+        const pages = document.querySelectorAll('.page');
+        const content = document.querySelector('.content');
+
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                links.forEach(l => l.classList.remove('active'));
+                pages.forEach(p => p.classList.remove('active'));
+
+                this.classList.add('active');
+                const target = this.getAttribute('href');
+                document.querySelector(target).classList.add('active');
+            });
+        });
+
+        const toggleBtn = document.querySelector('.toggle-btn');
+        const sidebar = document.querySelector('.sidebar');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+        });
+
+        // Profile picture upload handling
+        document.getElementById('upload-photo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profile-image').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Toggle edit mode for profile sections
+        function toggleEdit(section) {
+            const viewEl = document.getElementById(`${section}-view`);
+            const editEl = document.getElementById(`${section}-edit`);
+            const editBtn = editEl.parentElement.querySelector('.edit-btn');
+            
+            if (editEl.classList.contains('active')) {
+                // Save changes
+                const formData = new FormData(editEl);
+                const newData = {};
+                formData.forEach((value, key) => {
+                    newData[key] = value;
+                });
+                
+                // Update the view with new values
+                updateProfileView(section, newData);
+                
+                // Reset UI state
+                editEl.classList.remove('active');
+                viewEl.style.display = 'block';
+                editBtn.textContent = 'Edit';
+            } else {
+                // Enter edit mode
+                editEl.classList.add('active');
+                viewEl.style.display = 'none';
+                editBtn.textContent = 'Save';
+            }
+        }
+
+        function updateProfileView(section, data) {
+            const viewEl = document.getElementById(`${section}-view`);
+            
+            switch(section) {
+                case 'personal':
+                    viewEl.innerHTML = `
+                        <p><strong>Full Name:</strong> ${data.fullName}</p>
+                        <p><strong>Email:</strong> ${data.email}</p>
+                        <p><strong>Phone:</strong> ${data.phone}</p>
+                        <p><strong>Location:</strong> ${data.location}</p>
+                    `;
+                    break;
+                    
+                case 'professional':
+                    viewEl.innerHTML = `
+                        <p><strong>Department:</strong> ${data.department}</p>
+                        <p><strong>Role:</strong> ${data.role}</p>
+                        <p><strong>Employee ID:</strong> ${data.employeeId}</p>
+                        <p><strong>Join Date:</strong> ${data.joinDate}</p>
+                    `;
+                    break;
+                    
+                case 'skills':
+                    const skills = data.skills.split(',').map(skill => 
+                        `<span class="badge">${skill.trim()}</span>`
+                    ).join('');
+                    viewEl.innerHTML = `<div class="badges">${skills}</div>`;
+                    break;
+            }
+        }
+
+        // Initialize inventory items
+        let inventoryItems = [
+            { id: 1, name: 'Product A', sku: 'SKU001', quantity: 50, price: 19.99 },
+            { id: 2, name: 'Product B', sku: 'SKU002', quantity: 30, price: 24.99 },
+            { id: 3, name: 'Product C', sku: 'SKU003', quantity: 10, price: 39.99 }
+        ];
+
+        const itemsPerPage = 3;
+        let currentPage = 1;
+
+        // Add these HTML elements just after your inventory table
+        document.querySelector('#inventory').insertAdjacentHTML('beforeend', `
+            <!-- Add/Edit Item Modal -->
+            <div id="itemModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: relative; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a1a; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px;">
+                    <h3 id="modalTitle" style="color: #fff; margin-bottom: 20px;">Add New Item</h3>
+                    <form id="itemForm">
+                        <div class="form-group">
+                            <label for="itemName" style="color: #fff;">Product Name</label>
+                            <input type="text" id="itemName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemSku" style="color: #fff;">SKU</label>
+                            <input type="text" id="itemSku" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemQuantity" style="color: #fff;">Quantity</label>
+                            <input type="number" id="itemQuantity" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="itemPrice" style="color: #fff;">Price</label>
+                            <input type="number" id="itemPrice" required min="0" step="0.01">
+                        </div>
+                        <div style="margin-top: 20px; display: flex; gap: 10px;">
+                            <button type="submit" style="flex: 1;">Save</button>
+                            <button type="button" onclick="closeModal()" style="flex: 1;">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `);
+
+        // Modal functions
+        let editingItemId = null;
+
+        function showModal(isEdit = false, itemId = null) {
+            const modal = document.getElementById('itemModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const form = document.getElementById('itemForm');
+
+            modalTitle.textContent = isEdit ? 'Edit Item' : 'Add New Item';
+            editingItemId = itemId;
+
+            if (isEdit && itemId) {
+                const item = inventoryItems.find(item => item.id === itemId);
+                if (item) {
+                    document.getElementById('itemName').value = item.name;
+                    document.getElementById('itemSku').value = item.sku;
+                    document.getElementById('itemQuantity').value = item.quantity;
+                    document.getElementById('itemPrice').value = item.price;
+                }
+            } else {
+                form.reset();
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('itemModal').style.display = 'none';
+            editingItemId = null;
+        }
+
+        // Form submission handler
+        document.getElementById('itemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newItem = {
+                name: document.getElementById('itemName').value,
+                sku: document.getElementById('itemSku').value,
+                quantity: parseInt(document.getElementById('itemQuantity').value),
+                price: parseFloat(document.getElementById('itemPrice').value)
+            };
+
+            if (editingItemId) {
+                // Edit existing item
+                const index = inventoryItems.findIndex(item => item.id === editingItemId);
+                if (index !== -1) {
+                    inventoryItems[index] = { ...inventoryItems[index], ...newItem };
+                }
+            } else {
+                // Add new item
+                newItem.id = inventoryItems.length + 1;
+                inventoryItems.push(newItem);
+            }
+
+            closeModal();
+            displayInventoryItems(inventoryItems);
+        });
+
+        // Search functionality using existing search bar
+        document.querySelector('.inventory-actions .search-bar input').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const filteredItems = inventoryItems.filter(item => 
+                item.name.toLowerCase().includes(searchTerm) || 
+                item.sku.toLowerCase().includes(searchTerm)
+            );
+            displayInventoryItems(filteredItems);
+        });
+
+        // Add new item button handler
+        document.querySelector('.inventory-actions button:last-child').addEventListener('click', function() {
+            showModal(false);
+        });
+
+        // Display inventory items with pagination
+        function displayInventoryItems(items) {
+            const tbody = document.querySelector('.inventory-table tbody');
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px;">No items found</td>
+                    </tr>
+                `;
+                updatePagination(0);
+                return;
+            }
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = items.slice(startIndex, endIndex);
+
+            pageItems.forEach(item => {
+                tbody.innerHTML += `
+                    <tr data-id="${item.id}">
+                        <td>
+                            <span class="display-value">${item.name}</span>
+                            <input type="text" class="edit-input" value="${item.name}" style="display: none;">
+                        </td>
+                        <td>
+                            <span class="display-value">${item.sku}</span>
+                            <input type="text" class="edit-input" value="${item.sku}" style="display: none;">
+                        </td>
+                        <td>
+                            <span class="display-value">${item.quantity}</span>
+                            <input type="number" class="edit-input" value="${item.quantity}" min="0" style="display: none;">
+                        </td>
+                        <td>
+                            <span class="display-value">$${item.price.toFixed(2)}</span>
+                            <input type="number" class="edit-input" value="${item.price}" min="0" step="0.01" style="display: none;">
+                        </td>
+                        <td class="action-buttons">
+                            <button class="edit-btn">Edit</button>
+                            <button class="save-btn" style="display: none;">Save</button>
+                            <button class="cancel-btn" style="display: none;">Cancel</button>
+                            <button class="delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Add event listeners for inline editing
+            addTableEventListeners();
+            updatePagination(items.length);
+        }
+
+        // Add new function to handle table event listeners
+        function addTableEventListeners() {
+            const rows = document.querySelectorAll('.inventory-table tbody tr');
+            
+            rows.forEach(row => {
+                const editBtn = row.querySelector('.edit-btn');
+                const saveBtn = row.querySelector('.save-btn');
+                const cancelBtn = row.querySelector('.cancel-btn');
+                const deleteBtn = row.querySelector('.delete-btn');
+                const displayValues = row.querySelectorAll('.display-value');
+                const editInputs = row.querySelectorAll('.edit-input');
+
+                // Store original values for cancel functionality
+                let originalValues = Array.from(displayValues).map(span => span.textContent);
+
+                // Add delete event listener
+                deleteBtn?.addEventListener('click', () => {
+                    const itemId = parseInt(row.dataset.id);
+                    if (confirm('Are you sure you want to delete this item?')) {
+                        // Remove item from inventoryItems array
+                        inventoryItems = inventoryItems.filter(item => item.id !== itemId);
+                        
+                        // If current page becomes empty, go to previous page
+                        const startIndex = (currentPage - 1) * itemsPerPage;
+                        if (startIndex >= inventoryItems.length && currentPage > 1) {
+                            currentPage--;
+                        }
+                        
+                        // Refresh the display
+                        displayInventoryItems(inventoryItems);
+                    }
+                });
+
+                // Existing edit button listener
+                editBtn?.addEventListener('click', () => {
+                    displayValues.forEach(span => span.style.display = 'none');
+                    editInputs.forEach(input => input.style.display = 'block');
+                    editBtn.style.display = 'none';
+                    saveBtn.style.display = 'inline-block';
+                    cancelBtn.style.display = 'inline-block';
+                    deleteBtn.style.display = 'none';
+                });
+
+                // Existing save button listener
+                saveBtn?.addEventListener('click', () => {
+                    const itemId = parseInt(row.dataset.id);
+                    const newValues = Array.from(editInputs).map(input => input.value);
+                    
+                    const itemIndex = inventoryItems.findIndex(item => item.id === itemId);
+                    if (itemIndex !== -1) {
+                        inventoryItems[itemIndex] = {
+                            ...inventoryItems[itemIndex],
+                            name: newValues[0],
+                            sku: newValues[1],
+                            quantity: parseInt(newValues[2]),
+                            price: parseFloat(newValues[3])
+                        };
+                    }
+
+                    displayValues[0].textContent = newValues[0];
+                    displayValues[1].textContent = newValues[1];
+                    displayValues[2].textContent = newValues[2];
+                    displayValues[3].textContent = `$${parseFloat(newValues[3]).toFixed(2)}`;
+
+                    exitEditMode(row);
+                });
+
+                // Existing cancel button listener
+                cancelBtn?.addEventListener('click', () => {
+                    editInputs.forEach((input, index) => {
+                        input.value = originalValues[index].replace('$', '');
+                    });
+                    exitEditMode(row);
+                });
+            });
+        }
+
+        // Add helper function to exit edit mode
+        function exitEditMode(row) {
+            const displayValues = row.querySelectorAll('.display-value');
+            const editInputs = row.querySelectorAll('.edit-input');
+            const editBtn = row.querySelector('.edit-btn');
+            const saveBtn = row.querySelector('.save-btn');
+            const cancelBtn = row.querySelector('.cancel-btn');
+            const deleteBtn = row.querySelector('.delete-btn');
+
+            displayValues.forEach(span => span.style.display = 'block');
+            editInputs.forEach(input => input.style.display = 'none');
+            editBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            deleteBtn.style.display = 'inline-block';
+        }
+
+        // Delete item functionality
+        function deleteItem(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                inventoryItems = inventoryItems.filter(item => item.id !== id);
+                displayInventoryItems(inventoryItems);
+            }
+        }
+
+        // Pagination functionality
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const paginationDiv = document.querySelector('.pagination');
+            paginationDiv.innerHTML = '';
+
+            if (totalPages > 0) {
+                paginationDiv.innerHTML = `
+                    <button onclick="changePage('prev')" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                `;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationDiv.innerHTML += `
+                        <button onclick="changePage(${i})" ${currentPage === i ? 'style="background-color: #555;"' : ''}>${i}</button>
+                    `;
+                }
+
+                paginationDiv.innerHTML += `
+                    <button onclick="changePage('next')" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                `;
+            }
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(inventoryItems.length / itemsPerPage);
+            
+            if (page === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (page === 'next' && currentPage < totalPages) {
+                currentPage++;
+            } else if (typeof page === 'number') {
+                currentPage = page;
+            }
+
+            displayInventoryItems(inventoryItems);
+        }
+
+        // Initial display
+        displayInventoryItems(inventoryItems);
+
+        // Single Add Item Modal HTML
+        document.querySelector('#inventory').insertAdjacentHTML('beforeend', `
+            <div id="addItemModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000;">
+                <div class="modal-content" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2c2c2c; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px;">
+                    <h2 style="color: #fff; margin-bottom: 25px; font-size: 24px; font-weight: normal;">Add New Item</h2>
+                    <form id="addItemForm">
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: block; color: #fff; margin-bottom: 10px; font-size: 16px;">Product Name</label>
+                            <input type="text" id="itemName" required 
+                                   style="width: 100%; padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; font-size: 14px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: block; color: #fff; margin-bottom: 10px; font-size: 16px;">SKU</label>
+                            <input type="text" id="itemSku" required 
+                                   style="width: 100%; padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; font-size: 14px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: block; color: #fff; margin-bottom: 10px; font-size: 16px;">Quantity</label>
+                            <input type="number" id="itemQuantity" required min="0"
+                                   style="width: 100%; padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; font-size: 14px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 30px;">
+                            <label style="display: block; color: #fff; margin-bottom: 10px; font-size: 16px;">Price</label>
+                            <input type="number" id="itemPrice" required min="0" step="0.01"
+                                   style="width: 100%; padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; font-size: 14px;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <button type="submit" 
+                                    style="padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; cursor: pointer; font-size: 14px; width: 100%;">
+                                Add Item
+                            </button>
+                            <button type="button" onclick="closeModal()" 
+                                    style="padding: 12px; border: none; border-radius: 4px; background: #3d3d3d; color: #fff; cursor: pointer; font-size: 14px; width: 100%;">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `);
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            #addItemModal input:focus {
+                outline: none;
+                background: #454545;
+            }
+            #addItemModal button:hover {
+                background: #454545 !important;
+            }
+            #addItemModal input:hover {
+                background: #454545;
+            }
+            .modal-content {
+                animation: modalSlideIn 0.3s ease-out;
+            }
+            @keyframes modalSlideIn {
+                from {
+                    transform: translate(-50%, -60%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translate(-50%, -50%);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Modal functions
+        function showModal() {
+            document.getElementById('addItemModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('addItemModal').style.display = 'none';
+            document.getElementById('addItemForm').reset();
+        }
+
+        // Add item button functionality
+        document.querySelector('.inventory-actions button:last-child').addEventListener('click', showModal);
+
+        // Form submission handler
+        document.getElementById('addItemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newItem = {
+                id: inventoryItems.length + 1,
+                name: e.target.querySelector('#itemName').value,
+                sku: e.target.querySelector('#itemSku').value,
+                quantity: parseInt(e.target.querySelector('#itemQuantity').value),
+                price: parseFloat(e.target.querySelector('#itemPrice').value)
+            };
+
+            inventoryItems.push(newItem);
+            closeModal();
+            
+            // Reset to first page when adding new item
+            currentPage = 1;
+            displayInventoryItems(inventoryItems);
+        });
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Show loading state
+                const logoutBtn = document.querySelector('.logout-btn');
+                const originalContent = logoutBtn.innerHTML;
+                logoutBtn.innerHTML = '<span class="icon">↻</span><span class="text">Logging out...</span>';
+                logoutBtn.style.opacity = '0.7';
+                logoutBtn.disabled = true;
+                
+                // Simulate API call with timeout
+                setTimeout(() => {
+                    // Redirect to login page or handle logout
+                    window.location.href = '/login'; // Update this to your login page URL
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>
