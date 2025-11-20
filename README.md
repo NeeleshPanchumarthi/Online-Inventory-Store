@@ -23,17 +23,3 @@ Backend: Flask, Python
 Frontend: HTML, CSS, JavaScript
 
 Database: Oracle XE, PL/SQ
-project/
-│
-├── app.py                   # Flask backend
-│
-├── templates/
-│   ├── login.html           # Login / Register page
-│   └── index.html           # Dashboard page
-│
-├── static/
-│   └── logo.jpg             # Assets used by frontend
-│
-└── db/
-    ├── login.sql            # User table + auth scripts
-    └── d.sql                # Inventory & Orders schema
